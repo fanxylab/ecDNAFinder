@@ -32,7 +32,7 @@ ___
 
 ### **1. positional arguments:**
 <p> {Common,Fetch,Search,Merge,Update,Filter,Circos,Auto}</p>
-<pre><code>         Common              The common parameters used for other models.
+<pre><code>    Common              The common parameters used for other models.
     Fetch               fatch reads information from bam file.
     Search              search breakpoint region from bed file.
     Merge               merge breakpoint region from bed file.
@@ -60,9 +60,9 @@ input_workpath
 <pre><code>
 python ecDNAFinder.py Auto 
 	-f sample.info.txt  #sample information
-	-i workpath            #the input directory, including the bam file.
-	-bd bamdir            #the  bamfile directory built in input directory
+	-i workpath         #the input directory, including the bam file.
+	-bd bamdir          #the  bamfile directory built in input directory
 	-o outputpath       #the output directory
-	-n 6                         #the parallel number 
+	-n 6                #the parallel number 
 </code></pre>       
 
