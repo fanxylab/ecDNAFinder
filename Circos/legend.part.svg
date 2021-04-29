@@ -1,0 +1,47 @@
+<g id="RNA">
+	<text transform="matrix(1 0 0 1 2436.5364 2980.5723)" font-family="'ArialMT'" font-size="50">RNA FPKM</text>
+	
+		<line fill="none" stroke="#43BBBC" stroke-width="15" stroke-miterlimit="10" x1="2841.256" y1="2974.667" x2="2982.99" y2="2974.667"/>
+	
+		<line fill="none" stroke="#43BBBC" stroke-width="15" stroke-miterlimit="10" x1="2770.391" y1="2974.667" x2="2841.256" y2="2974.667"/>
+	
+		<line fill="none" stroke="#460EE2" stroke-width="15" stroke-miterlimit="10" x1="2699.525" y1="2974.667" x2="2770.391" y2="2974.667"/>
+	
+		<line fill="none" stroke="#000000" stroke-width="2" stroke-miterlimit="10" x1="2699.527" y1="2982.057" x2="2699.527" y2="2948.537"/>
+	
+		<line fill="none" stroke="#000000" stroke-width="2" stroke-miterlimit="10" x1="2770.393" y1="2982.057" x2="2770.393" y2="2948.537"/>
+	
+		<line fill="none" stroke="#000000" stroke-width="2" stroke-miterlimit="10" x1="2982.99" y1="2982.057" x2="2982.99" y2="2948.537"/>
+	<text transform="matrix(1 0 0 1 2694.9612 2945.5684)" font-family="'ArialMT'" font-size="45">0</text>
+	<text transform="matrix(1 0 0 1 2728.4592 2945.5684)" font-family="'ArialMT'" font-size="45">500</text>
+	<text transform="matrix(1 0 0 1 2895.0881 2945.5684)" font-family="'ArialMT'" font-size="45">4000</text>
+</g>
+<g id="CNV">
+	
+		<line fill="none" stroke="#000000" stroke-width="15" stroke-miterlimit="10" x1="2697.827" y1="2875.613" x2="2981.291" y2="2875.613"/>
+	<text id="CNV_1_" transform="matrix(1 0 0 1 2499.385 2884.8008)" font-family="'ArialMT'" font-size="50">CNV CN</text>
+	<circle fill="#FB6A4A" cx="2840.937" cy="2873.82" r="17.008"/>
+</g>
+<g id="EcDNA">
+	<text transform="matrix(1 0 0 1 2443.0295 2817.2002)" font-family="'ArialMT'" font-size="50">EcDNA CN</text>
+	
+		<line fill="none" stroke="#F35BD2" stroke-width="15" stroke-miterlimit="10" x1="2840.935" y1="2811.834" x2="2982.668" y2="2811.834"/>
+	
+		<line fill="none" stroke="#F35BD2" stroke-width="15" stroke-miterlimit="10" x1="2770.07" y1="2811.834" x2="2840.935" y2="2811.834"/>
+	
+		<line fill="none" stroke="#9430C6" stroke-width="15" stroke-miterlimit="10" x1="2699.201" y1="2811.834" x2="2770.07" y2="2811.834"/>
+	
+		<line fill="none" stroke="#000000" stroke-width="2" stroke-miterlimit="10" x1="2699.202" y1="2819.43" x2="2699.202" y2="2786.108"/>
+	
+		<line fill="none" stroke="#000000" stroke-width="2" stroke-miterlimit="10" x1="2770.071" y1="2819.43" x2="2770.071" y2="2786.108"/>
+	
+		<line fill="none" stroke="#000000" stroke-width="2" stroke-miterlimit="10" x1="2982.993" y1="2819.261" x2="2982.993" y2="2785.94"/>
+	<text transform="matrix(1 0 0 1 2692.6379 2784.9385)" font-family="'ArialMT'" font-size="45">0</text>
+	<text transform="matrix(1 0 0 1 2759.1389 2784.9385)" font-family="'ArialMT'" font-size="45">5</text>
+	<text id="_x32_0" transform="matrix(1 0 0 1 2950.6389 2784.9385)" font-family="'ArialMT'" font-size="45">20</text>
+</g>
+<g id="link">
+	
+		<line fill="none" stroke="#F18B20" stroke-width="15" stroke-miterlimit="10" x1="2697.827" y1="2711.743" x2="2981.293" y2="2711.743"/>
+	<text transform="matrix(1 0 0 1 2278.5911 2722.4434)" font-family="'ArialMT'" font-size="50">EcDNA breakpoint</text>
+</g>
