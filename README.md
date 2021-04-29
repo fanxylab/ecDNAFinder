@@ -53,8 +53,7 @@ workpath:
 │   ├── sample1.bam
 │   └── sample2.bam
 ```
-<pre><code>
-python ecDNAFinder.py Auto 
+<pre><code>python ecDNAFinder.py Auto 
 	-f sample.info.txt  #sample information
 	-i workpath         #the input directory, including the bam file.
 	-bd bamdir          #the  bamfile directory built in input directory
