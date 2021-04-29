@@ -1,5 +1,5 @@
 # ecDNAFinder
-The [**ecDNAFinder**](https://github.com/WellJoea/MLkit.git) is used for finding ecDNA breakpoint and circle from long read bam, such as pacbio and nanopore sequencing.<br/>
+The [**ecDNAFinder**](https://github.com/fanxylab/ecDNAFinder.git) is used for finding ecDNA breakpoint and circle from long read bam, such as pacbio and nanopore sequencing.<br/>
 The ecDNA detection include the following steps:
 - fetching mapping read intervals and referred genomic locations
 - detecting reads rearrangements to get the ecDNA candidate reads;
@@ -22,7 +22,7 @@ ___
 </code></pre>
 
 ### User installation
-- download: https://github.com/WellJoea/MLkit.git
+- download: https://github.com/fanxylab/ecDNAFinder.git
 - cd ecDNAFinder
 - python setup.py install --user
 ___
