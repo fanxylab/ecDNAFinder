@@ -11,8 +11,7 @@ The ecDNA detection include the following steps:
 ___
 ## Installation
 ### Dependencies
-<pre><code>        
-'joblib >= 0.13.2',
+<pre><code>'joblib >= 0.13.2',
 'matplotlib >= 3.0.3',
 'numpy >= 1.16.4',
 'pandas >= 0.24.2',
@@ -44,19 +43,16 @@ ___
 
 ### **2. Example:**
 sample.info.txt format:
-```
-sampleid
+```sampleid
 sample1
 sample2
 ```
 workpath:
-```
-input_workpath
+```input_workpath
 ├── bamfile
 │   ├── sample1.bam
 │   └── sample2.bam
 ```
-
 <pre><code>
 python ecDNAFinder.py Auto 
 	-f sample.info.txt  #sample information
