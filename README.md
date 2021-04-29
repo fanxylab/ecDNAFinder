@@ -43,12 +43,14 @@ ___
 
 ### **2. Example:**
 sample.info.txt format:
-```sampleid
+```shell
+sampleid
 sample1
 sample2
 ```
 workpath:
-```input_workpath
+```shell
+input_workpath
 ├── bamfile
 │   ├── sample1.bam
 │   └── sample2.bam
