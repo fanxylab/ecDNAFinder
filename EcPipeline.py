@@ -19,6 +19,7 @@ from .EcUpdate import UpdateCat
 from .EcFilter import FilterLinks
 from .EcCheck import CheckBP
 from .EcSeq import SeqEngine
+from .EcCNV import CNVpipe
 from .EcAnnotate import Annotate
 from .EcCVisual import Circos
 
@@ -37,6 +38,7 @@ class EcDNA():
         self.arg.Merge  = '%s/%s'%(self.arg.outdir, self.arg.mergedir)
         self.arg.Update = '%s/%s'%(self.arg.outdir, self.arg.updatedir)
         self.arg.Cheak  = '%s/%s'%(self.arg.outdir, self.arg.checkdir)
+        self.arg.CNV    = '%s/%s'%(self.arg.outdir, self.arg.cnvdir)
 
         if self.arg.commands == 'Auto':
             self.arg.Pipe = self.arg.pipeline
@@ -73,7 +75,8 @@ class EcDNA():
         UpdateCat( self.arg, self.log ).AllEcDNA(_L)
 
     def FilterW(self):
-        FilterLinks( self.arg, self.log ).FormatLink()
+        #FilterLinks( self.arg, self.log ).FormatLink()
+        FilterLinks( self.arg, self.log ).FilterLink()
 
     def CheckW(self, _L):
         CheckBP( self.arg, self.log ).BPStat(_L)
@@ -84,8 +87,13 @@ class EcDNA():
     def CVisualW(self):
         Circos( self.arg, self.log ).ConfData()
 
+    def CNVW(self, _L):
+        CNVpipe(self.arg, self.log ).integrat(_L)
+
     def Pipeline(self):
         self._getinfo()
+        if 'CNV' in self.arg.Pipe:
+            self.CNVW(self.INdf)
         if 'Fetch' in self.arg.Pipe:
             Parallel( n_jobs=self.arg.njob, verbose=1 )( delayed( self.FetchW )(_l) for _n, _l in self.INdf.iterrows() )
         if 'Search' in self.arg.Pipe:

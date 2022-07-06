@@ -24,7 +24,7 @@ class CheckBP():
     def _getinfo(self, _info):
         self.info = _info
         self.inid = _info.sampleid
-        self.inbam = '%s/%s.sorted.bam'%(self.arg.Bam, self.inid)
+        self.inbam = '%s/%s.rmdup.bam'%(self.arg.Bam, self.inid)
         self.outdir= '%s/%s'%(self.arg.Cheak, self.inid )
         self.arg.outpre= '%s/%s'%(self.outdir, self.inid)
         os.makedirs(self.outdir, exist_ok=True)
@@ -34,7 +34,7 @@ class CheckBP():
         samfile = pysam.AlignmentFile(self.inbam, "rb")
         SID   = self.inid
         sampd = []
-        Head  = ['#chrom', 'start', 'end', 'SID', 'length', 'forword', 'query_name', 'query_length', 
+        Head  = ['#chrom', 'start', 'end', 'SID', 'length', 'forword', 'query_name', 'query_length',
                  'cigarreg', 'alignment_qlen', 'mapping_quality', 'flag']
 
         for read in samfile.fetch():
@@ -122,7 +122,7 @@ class CheckBP():
 
         inbed['HeadSoft'] = (inbed['HeadSoft']/inbed['query_length']).round(4)
         inbed['TailSoft'] = (1 - inbed['TailSoft']/inbed['query_length']).round(4)
-        
+
         # add marker
         inbed.loc[((inbed.OVERfre  < self.overfremin) & (inbed.OVERlen < self.overlenmin)), 'fflag'] += ';OVERMIN'
         inbed.loc[(inbed.BP_count  < self.bptnum), 'fflag'] += ';BPLOWNUM'

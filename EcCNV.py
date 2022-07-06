@@ -10,7 +10,7 @@ import pandas as pd
 
 from joblib import Parallel, delayed
 from concurrent import futures
-from .EcVisual import Visal
+#from .EcVisual import Visal
 
 #sklearn.neighbors.KernelDensity CNVnator
 #cnvkit.py access \
@@ -19,60 +19,24 @@ from .EcVisual import Visal
 # 使用cnvkit access 进行splitbed
 
 class BinBuild():
-    def __init__(self, arg, log,  *array, **dicts):
+    def __init__(self, arg=None, log=None):
         self.arg = arg
         self.log = log
-        self.array  = array
-        self.dicts  = dicts
         self.ngaps = self.arg.ngaps
         self.blacklist = self.arg.blacklist
         self.dropbinlen = self.arg.dropbinlen
         self.genome = self.arg.genomecnv
         self.cytoband = self.arg.cytoband
 
-    def Rmerge(self, interVs):
-        """
-        :param intvs: List[List[int]]
-        :return: List[List[int]]
-        """
-        if type(interVs)== np.ndarray:
-            intvs = interVs[np.lexsort((interVs[:,1], interVs[:,0]))]
-        elif type(interVs) == list:
-            intvs = sorted(intvs, key=lambda x:x[0]) 
-
-        merged = []
-        for iv in intvs:
-            if (not merged) or (merged[-1][-1] < iv[0]):
-                merged.append( [iv[0], iv[1]] )  # merged.append( iv ) will change interVs values
-            else:
-                merged[-1][-1] = max(merged[-1][-1], iv[-1])
-
-        return np.array(merged)
-
-    def Ccmplmty(self, interVs, Min=0, Max=40, sort=True, checkm=False, considerbp=False):
-        if sort:
-            interVs= interVs[np.lexsort((interVs[:,1], interVs[:,0]))]
-        if checkm:
-            interVs = self.Rmerge(interVs)
+    def Ccmplmty(self, interVs, Min=0, Max=40):
+        interVs= interVs[np.lexsort((interVs[:,1], interVs[:,0]))]
 
         End = np.append(interVs[:,0], Max)
         Str = np.insert(interVs[:,1], 0, Min)
         INt = np.c_[Str, End]
 
         INt = INt[(INt[:,1]-INt[:,0]) >0]
-
-        if considerbp:
-            INt[ 0, 0] = max(INt[ 0, 0], Min)
-            INt[-1,-1] = min(INt[-1,-1], Max )
         return INt
-
-    def divbin_break(self, _s, _e, _t, info=[], endown=0.25):
-        D = np.arange(_s, _e, _t)
-        if  (_e -_s > _t) and (_e - D[-1])/_t <= endown:
-            D[-1] = _e
-        else :
-            D = np.append(D, _e)
-        return [ info + [D[i], D[i+1]] for i in range(D.size - 1) ]
 
     def divbin_continu(self, Inter, Sep, info=[], endown=0.65):
         Split = []
@@ -96,6 +60,7 @@ class BinBuild():
             Split[-1] = Inter[-1][-1]
             Extra += Sep
 
+        #Split = [ info + Split[i] + [i+1] for i in range(len(Split) - 1) ]
         Split = [ info + [Split[i], Split[i+1], Sep, i+1] for i in range(len(Split) - 1) ]
         Split[-1][-2] = Extra
         return Split
@@ -117,7 +82,7 @@ class BinBuild():
         Ngaps['chrom'] = Ngaps['chrom'].str.lstrip('chr')
 
         GFai  = pd.read_csv(self.genome + '.fai', sep='\t',
-                            names=['chrom', 'end', 'offset', 'linebases', 'linwidth'], 
+                            names=['chrom', 'end', 'offset', 'linebases', 'linwidth'],
                             comment=None)
         GFai['start'] = 0
 
@@ -129,37 +94,15 @@ class BinBuild():
             if  not _g.type.isna().any():
                 _g = pd.DataFrame(self.Ccmplmty(_g[['chromStart', 'chromEnd']].values, Min=_s, Max=_e),
                                     columns=KeepCol[1:3])
-                _g.insert(0, 'chrom', _c)
+                #_g.insert(0, 'chrom', _c)
+                _g['chrom'] = _c
+
             NChrom.append(_g[KeepCol])
         NChrom = pd.concat(NChrom, axis=0, sort=False)
         NChrom[KeepCol[1:3]] = NChrom[KeepCol[1:3]].astype(int)
         NChrom['length'] = NChrom.end - NChrom.start
         NChrom = NChrom[(NChrom.length > self.dropbinlen)]
         return NChrom
-
-    def SpltBin_break(self, Inbed):
-        Ref = pysam.FastaFile(self.genome)
-
-        mbin = self.arg.mergebin
-        emer = self.arg.endmergepfre
-
-        sbin = self.arg.splitbin
-        eown = self.arg.endindepfre
-
-        MBin = [self.divbin_break(x.start, x.end, mbin, info=x.tolist(), endown=emer) for _, x in Inbed.iterrows()]
-        MBin = sum(MBin, [])
-        MBin = pd.DataFrame( MBin, columns=Inbed.columns.tolist() + ['mS', 'mE'])
-        MBin['mGC']   = MBin.apply(lambda x: self.GC_Rmsk(Ref.fetch(x.chrom, x.mS, x.mE)), axis=1)
-        MBin['mRmsk'] = MBin.apply(lambda x: self.GC_Rmsk(Ref.fetch(x.chrom, x.mS, x.mE), Ctype='atcg'), axis=1)
-        MBin['mL']  = MBin.mE-MBin.mS
-
-        SBin = [self.divbin_break(x.mS, x.mE, sbin, info=x.tolist(), endown=eown) for _, x in MBin.iterrows()]
-        SBin = sum(SBin, [])
-        SBin = pd.DataFrame( SBin, columns=SBin.columns.tolist() + ['eS', 'eE'])
-        SBin['eGC']   = SBin.apply(lambda x: self.GC_Rmsk(Ref.fetch(x.chrom, x.eS, x.eE)), axis=1)
-        SBin['eRmsk'] = SBin.apply(lambda x: self.GC_Rmsk(Ref.fetch(x.chrom, x.eS, x.eE), Ctype='atcg'), axis=1)
-        SBin['eL']  = SBin.eE-SBin.eS
-        return SBin
 
     def SpltBin_continu(self, Inbed):
         Ref = pysam.FastaFile(self.genome)
@@ -176,27 +119,33 @@ class BinBuild():
         SBin = pd.DataFrame( sum(SBin, []), columns=['chrom', 'eS', 'eE', 'eL', 'ebin'])
         SBin['eGC']   = SBin.apply(lambda x: self.GC_Rmsk(Ref.fetch(x.chrom, x.eS, x.eE)), axis=1)
         SBin['eRmsk'] = SBin.apply(lambda x: self.GC_Rmsk(Ref.fetch(x.chrom, x.eS, x.eE), Ctype='atcg'), axis=1)
+        SBin.to_csv("SBin2.txt", sep='\t', header=False, index=False, columns=['chrom', 'eS', 'eE', 'eGC', 'eRmsk'])
 
         MBin = [ self.divbin_continu(_g[['start', 'end']].values, mbin, info=[_c], endown=emer) for _c, _g in Inbed.groupby(by='chrom')]
         MBin = pd.DataFrame( sum(MBin, []), columns=['chrom', 'mS', 'mE', 'mL', 'mbin'])
         MBin['mGC']   = MBin.apply(lambda x: self.GC_Rmsk(Ref.fetch(x.chrom, x.mS, x.mE)), axis=1)
         MBin['mRmsk'] = MBin.apply(lambda x: self.GC_Rmsk(Ref.fetch(x.chrom, x.mS, x.mE), Ctype='atcg'), axis=1)
+        MBin.to_csv("MBin2.txt", sep='\t', header=False, index=False, columns=['chrom', 'mS', 'mE', 'mGC', 'mRmsk'])
 
         MBin = pd.concat([ x.to_frame().T.merge(SBin[((SBin.chrom==x.chrom) & (SBin.eS>=x.mS) & (SBin.eE<=x.mE))], on='chrom', how='outer')
                             for _, x in MBin.iterrows()], axis=0)
+        MBin.to_csv("MBin0.txt", sep='\t', header=False, index=False)
 
         return MBin
 
     def NoNBed(self):
         NChrom = self.DropNGaps()
+        #NChrom = NChrom[NChrom['chrom']=='Y']
+        NChrom.to_csv("NChrom1.txt")
         MChrom = self.SpltBin_continu(NChrom)
+        NChrom.to_csv("NChrom2.txt")
         MChrom.to_csv(self.arg.buildidx, sep='\t', index=False)
         for _i in ['eGC', 'mGC']:
             if _i.startswith('m'):
                 Dup=['chrom', 'mS', 'mE', 'mL']
             else:
                 Dup=[]
-            Visal().GCdistribut(MChrom, '%s%s.pdf'%(self.arg.buildidx.rstrip('idx'), _i), X=_i, Dup=Dup)
+            #Visal().GCdistribut(MChrom, '%s%s.pdf'%(self.arg.buildidx.rstrip('idx'), _i), X=_i, Dup=Dup)
 
 class Correct():
     def __init__(self, arg, log,  *array, **dicts):
@@ -230,7 +179,7 @@ class Correct():
         }
         '''
         self.gchmmc='''
-        lowess.gc <- function(x, mappability = 0.9, samplesize = 50000,  
+        lowess.gc <- function(x, mappability = 0.9, samplesize = 50000,
                                     routlier = 0.01, doutlier = 0.001,
                                     coutlier <- 0.01,
                                     verbose = TRUE) {
@@ -250,14 +199,14 @@ class Correct():
         i <- seq(0, 1, by = 0.001)
         final = loess(predict(rough, i) ~ i, span = 0.3)
         x$cor.gc <- x$reads / predict(final, x$gc)
-        
+
 
         range <- quantile(x$cor.gc[which(x$valid)],
                             prob = c(0, 1 - coutlier), na.rm = TRUE)
         set <- which(x$cor.gc < range[2])
         select <- sample(set, min(length(set), samplesize))
         final = approxfun(lowess(x$map[select], x$cor.gc[select]))
-        
+
         x$cor.map <- x$cor.gc / final(x$map)
         x$copy <- x$cor.map
         x$copy[x$copy <= 0] = NA
@@ -266,7 +215,7 @@ class Correct():
         }
 
         '''
-        
+
 class BinCount():
     def __init__(self, arg, log,  *array, **dicts):
         self.arg = arg
@@ -282,12 +231,26 @@ class BinCount():
                         'SunTag-CRISPRi', 'V7-MC-HG-FA']
         self.chrs = self.hchrs + self.plasmids
 
+    def _getbam(self, _info):
+        if 'bamfile' in _info.keys():
+            self.inbam = _info.bamfile
+        else:
+            self.inbam = '%s/%s.rmdup.bam'%(self.arg.Bam, _info.sampleid)
+            if not os.path.exists(self.inbam):
+                self.inbam = '%s/%s/%s.rmdup.bam'%(self.arg.Bam, _info.sampleid, _info.sampleid)
+        if not os.path.exists(self.inbam):
+            self.log.CW('The bam file of Sample %s cannot be found. Please input right path'%_info.sampleid)
+        else:
+            return self
+
     def _getinfo(self, _info):
+        self._getbam(_info)
         self.info = _info
         self.inid = _info.sampleid
-        self.inbam = '%s/%s.sorted.bam'%(self.arg.Bam, self.inid)
         self.outdir= '%s/%s'%(self.arg.CNV, self.inid )
         self.arg.outpre= '%s/%s'%(self.outdir, self.inid)
+        self.arg.scriptdir = os.path.dirname(os.path.realpath(__file__))
+        self.result_file = '%s/%s.countsbases.txt' % (self.outdir, self.inid)
         os.makedirs(self.outdir, exist_ok=True)
         return self
 
@@ -310,7 +273,7 @@ class BinCount():
         i.e. counting the number of read starts in a region, then scaling for read
         length and region width to estimate depth.
         Coordinates are 0-based, per pysam.
-        bedtools coverage 
+        bedtools coverage
         samtools bedcov
         """
         bamfile, chrom, start, end = args
@@ -326,7 +289,13 @@ class BinCount():
 
         count = 0
         bases = 0
-        for read in bamfile.fetch(reference=str(chrom), start=start, end=end, multiple_iterators =True):
+        try:
+            bamfetch = bamfile.fetch(reference=str(chrom), start=start, end=end, multiple_iterators =True)
+        except (ValueError, ArithmeticError) :
+            print('invalid contig ' + chrom)
+            return [chrom, start, end, count, bases]
+
+        for read in bamfetch:
             if filter_read(read):
                 # Only count the bases aligned to the region
                 rlen = read.query_alignment_length
@@ -381,34 +350,34 @@ class BinCount():
         if CT =='e':
             CouBase.to_csv( '%s.%sbin.countsbases.%s.gz'%(self.arg.outpre, CT, self.arg.binsize), sep='\t', index=False)
 
-        #Visal().GCcounts( X='gc', y= 'counts', data=CouBase, 
-        #                     out= '%s.%sbin.countsbases.gc.counts.pdf'%(self.arg.outpre, CT) )
-        #Visal().GCcounts( X='gc', y= 'bases',  data=CouBase, 
-        #                     out= '%s.%sbin.countsbases.gc.bases.pdf'%(self.arg.outpre, CT)) 
         return CouBase
 
     def DoCoverage(self, _l): # bamfile, bedfile, minmapq=0):
-        self._getinfo(_l)
         eCB = self.CountBase(CT='e')
         mCB = self.CountBase(CT='m')
-        
+
         eCB = eCB.groupby(by=['chrom', 'bins'], sort=False)
-        mCB = mCB.merge( eCB['counts'].median().to_frame('counts_md').reset_index(), on=['chrom', 'bins'], how='outer')\
-                 .merge( eCB['bases'].median().to_frame('bases_md').reset_index(), on=['chrom', 'bins'], how='outer')
+        mCB = mCB.merge( eCB['counts'].mean().to_frame('counts_md').reset_index(), on=['chrom', 'bins'], how='outer')\
+                 .merge( eCB['bases'].mean().to_frame('bases_md').reset_index(), on=['chrom', 'bins'], how='outer')
         mCB.to_csv( '%s.%sbin.countsbases.%s.gz'%(self.arg.outpre, 'm', self.arg.binsize), sep='\t', index=False)
 
         #CopyStat= self.CopyRatio(CouBase)
         #CouBase.to_csv( self.arg.outpre + '.Lbin.copyratio.txt', sep='\t', index=False)
     def CorSeg(self, _l):
-        self._getinfo(_l)
-        CT = 'm'
-        outpre = '%s.%sbin.countsbases.%s'%(self.inid, CT, self.arg.binsize)
-        os.system( 'nohup /share/home/share/software/R-3.6.3/bin/Rscript %s/cnvgcnomal.R %s %s &'
-                    %(self.arg.scriptdir, self.outdir, outpre))
+        cmd = """zcat %s/%s.mbin.countsbases.%s.gz | awk 'NR==1||$1~"^[0-9XY]+$"{OFS="\\t";print $1,$2,$3,$5,$6,$9,$10,$11,$12}' > %s/%s.txt""" % (
+            self.outdir, self.inid, self.arg.binsize, self.outdir, self.inid)
+        os.system(cmd)
+        cnv_cmd = '/datd/enzedeng/software/R-4.1.1/bin/Rscript %s/ecCNV.R %s %s/%s.txt' % (
+            self.arg.scriptdir, self.outdir, self.outdir, self.inid)
+        os.system(cnv_cmd)
+        #CT = 'm'
+        #outpre = '%s.%sbin.countsbases.%s'%(self.inid, CT, self.arg.binsize)
+        #os.system( '/datd/enzedeng/software/R-4.1.1/bin/Rscript %s/cnvgcnomal.R %s %s &'
+        #            %(self.arg.scriptdir, self.outdir, outpre))
 
     def LinePlt(self, _L):
+        '''deprecated'''
         Lbin = [ '{0}/{1}/{1}.Lbin.copyratio.txt'.format(self.arg.CNV, i) for i in _L.sampleid]
-        print(Lbin)
         Lbin = pd.concat([ pd.read_csv(i, sep='\t') for i in Lbin], axis=0)
         Lbin.sort_values(by=['chrom', 'mS', 'mE'], inplace=True)
         Lbin['Bins'] = Lbin.chrom + ':' + Lbin.mS.astype(str) + '-' + Lbin.mE.astype(str)
@@ -416,3 +385,43 @@ class BinCount():
         Lbin.to_csv(self.arg.CNV + '/CNV.1M.txt',sep='\t', index=False)
         os.system('/share/home/share/software/R-3.6.3/bin/Rscript /datb/zhouwei/01Projects/03ecDNA/Nanopore/cnv.line.plot.R {0}/CNV.1M.txt {0}'.format(self.arg.CNV))
         #Visal().lineplt(Lbin, './aa.pdf')
+
+class CNVpipe():
+    def __init__(self, arg, log,  *array, **dicts):
+        self.arg = arg
+        self.log = log
+        self.array  = array
+        self.dicts  = dicts
+        self.arg.scriptdir = os.path.dirname(os.path.realpath(__file__))
+        self.arg.datadir   = self.arg.scriptdir + '/../Data/'
+        self.arg.splitstr = str( int(self.arg.splitbin/1e3)
+                                    if self.arg.splitbin/1e3 >=1
+                                    else round(self.arg.splitbin/1e3, 1) ) + 'K'
+        self.arg.mergestr = str(int(self.arg.mergebin/1e3)) + 'K' \
+                                    if self.arg.mergebin/1e6 <1 \
+                                    else str(round(self.arg.mergebin/1e6, 1)) + 'M'
+        self.arg.binsize = self.arg.mergestr + self.arg.splitstr
+
+    def buildidx(self):
+        if not self.arg.buildidx:
+            self.arg.buildidx = '%s/hg38_split_%s_continue_bin.idx'%(self.arg.datadir, self.arg.binsize)
+            self.log.CI('Cannot find the bin file. The defaul file will be used.')
+            if not os.path.exists(self.arg.buildidx):
+                self.log.CI('Cannot find the defaul bin file. The file will be built.')
+                BinBuild( self.arg, self.log ).NoNBed()
+
+    def comptCNV(self, _l):
+        bc = BinCount( self.arg, self.log )
+        bc._getinfo(_l)
+        if not os.path.exists(f'{self.arg.outpre}.mbin.countsbases.{self.arg.binsize}.gz'):
+            bc.DoCoverage(_l)
+        bc.CorSeg(_l)
+
+    def plotall(self, _L):
+        pass
+
+    def integrat(self, _L):
+        self.buildidx()
+        #self.arg.buildidx = '%s/hg38_split_%s_continue_bin.idx'%(self.arg.datadir, self.arg.binsize)
+        Parallel( n_jobs=self.arg.njob, verbose=1 )( delayed( self.comptCNV  )(_l) for _n, _l in _L.iterrows() )
+        self.plotall(_L)

@@ -36,6 +36,8 @@ def Args():
                     help="out directory of search. [Default: %(default)s]")
     P_Common.add_argument("-md", "--mergedir", type=str,  default='03.SoftMap',
                     help="out directory of merge. [Default: %(default)s]")
+    P_Common.add_argument("-vd", "--cnvdir", type=str,  default='04.CNV',
+                    help="out directory for CNV. [Default: %(default)s]")
     P_Common.add_argument("-ud", "--updatedir", type=str, default='04.EcRegion',
                     help="out directory for update. [Default: %(default)s]")
     P_Common.add_argument("-cd", "--checkdir", type=str, default='05.CheakBP',
@@ -44,9 +46,39 @@ def Args():
                     help="bedtools path. [Default: %(default)s]")
     P_Common.add_argument("-st", "--samtools", type=str, default='/share/home/share/software/samtools-1.10/bin/',
                     help="samtools path. [Default: %(default)s]")
-    P_Common.add_argument("-gt", "--gtf", type=str, 
+    P_Common.add_argument("-gt", "--gtf", type=str,
                     default='/share/home/share/Repository/GenomeDB/Reference/Homo_Sapiens/ENSEMBL/Homo_sapiens.GRCh38.100.gtf',
                     help="the genome gtf file. [Default: %(default)s]")
+
+    P_cnv = subparsers.add_parser('CNV', conflict_handler='resolve', add_help=False)
+    P_cnv.add_argument("-ng", "--ngaps", type=str,
+                    default='/share/home/share/Repository/GenomeDB/Blacklist/hg38_ucsc_track_gap.txt',
+                    help="the hg38 ucsc track N gaps.")
+    P_cnv.add_argument("-gm", "--genomecnv", type=str,
+                    default='/share/home/zhou_wei/Workspace/01Repository/GenomeDB/Reference/EcDNARef/HG38_ENSEMBL_Plasmid20.fa',
+                    help="the genome fasta.")
+    P_cnv.add_argument("-ct", "--cytoband", type=str,
+                    default='/share/home/share/Repository/GenomeDB/Reference/Homo_Sapiens/UCSC/HG38/hg38_ucsc_cytoBand.txt',
+                    help="the cytoband file.")
+    P_cnv.add_argument("-bl", "--blacklist", type=str,
+                    default='/share/home/share/Repository/GenomeDB/Blacklist/hg38_ENCFF356LFX_unified_blacklist.bed',
+                    help="the bed file hg38 ENCFF356LFX unified blacklist.")
+    P_cnv.add_argument("-bi", "--buildidx", type=str,
+                    help="the index file built of reference cnv bin. If not specified, it will find or build in the data path.")
+    P_cnv.add_argument("-sb", "--splitbin", type=int, default=5000,
+                    help="the legnth of each split bin.")
+    P_cnv.add_argument("-db", "--dropbinlen", type=int, default=1000,
+                    help="the min legnth of each Ngaps region.")
+    P_cnv.add_argument("-ed", "--endindepfre", type=float, default=0.65,
+                    help="the min ratio of last split bin lenght.")
+    P_cnv.add_argument("-mb", "--mergebin", type=int, default=500000,
+                    help="the legnth of ecah merge bin.")
+    P_cnv.add_argument("-eb", "--endmergepfre", type=float, default=0.45,
+                    help="the min ratio of last merge bin lenght. [Default: %(default)s]")
+    P_CNV = subparsers.add_parser('CNV',conflict_handler='resolve',
+                    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+                    parents=[P_Common, P_cnv],
+                    help='get CNV information.')
 
     P_fetch = subparsers.add_parser('Fetch', conflict_handler='resolve', add_help=False)
     P_fetch.add_argument("-ms", "--minsoftdrop",  type=int, default=20,
@@ -107,13 +139,13 @@ def Args():
                     help="the max overlap distance of neighbour region. [Default: %(default)s]")
     P_Search = subparsers.add_parser('Search',conflict_handler='resolve',
                     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-                    parents=[P_Common, P_fetch, P_search],
+                    parents=[P_Common, P_fetch, P_search, P_cnv],
                     help='search breakpoint region from bed file.')
 
     P_annot = subparsers.add_parser('Annot', conflict_handler='resolve', add_help=False)
     P_annot.add_argument("-at", "--annotefile",
                     help="the file used for region gene annotation.")
-    P_annot.add_argument("-bi", "--biotype", nargs='+', 
+    P_annot.add_argument("-bi", "--biotype", nargs='+',
                     default=['miRNA','lncRNA', 'protein_coding'],
                     help="the gene biotype used for annotation of regions. [Default: %(default)s]")
     P_annot.add_argument("-kc", "--annotcol", type=str, default='gene_name',
@@ -124,10 +156,10 @@ def Args():
                     help="the length of two ends in BP to annotate when the annottype set as partial. [Default: %(default)s]")
     P_annot.add_argument("-ka", "--minoverlap", type=int, default=30,
                     help="the min overlap lenght between gene and link regioin. [Default: %(default)s]")
-    P_annot.add_argument("-gb", "--gtfbed", type=str, 
+    P_annot.add_argument("-gb", "--gtfbed", type=str,
                     default='/share/home/share/Repository/GenomeDB/Reference/Homo_Sapiens/ENSEMBL/Homo_sapiens.GRCh38.100.gtf.gene.bed',
                     help="the gene bed file used for annotation of regions. [Default: %(default)s]")
-    P_annot.add_argument("-sp", "--simplerepeat", type=str, 
+    P_annot.add_argument("-sp", "--simplerepeat", type=str,
                     default='/share/home/share/Repository/GenomeDB/TandemRepeat/hg38_simpleRepeat.ensemb.bed',
                     help="the simplerepeat path. [Default: %(default)s]")
     P_annot.add_argument("-ko", "--minovertrf", type=int, default=30,
@@ -136,7 +168,7 @@ def Args():
                     help="the trf distance between bed file and simplerepeat file. [Default: %(default)s]")
     P_Annot = subparsers.add_parser('Annot',conflict_handler='resolve',
                     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-                    parents=[P_Common, P_fetch, P_search, P_annot],
+                    parents=[P_Common, P_fetch, P_search, P_annot, P_cnv],
                     help='annotate region gene from bed file.')
 
     P_merge = subparsers.add_parser('Merge', conflict_handler='resolve', add_help=False)
@@ -148,7 +180,7 @@ def Args():
                     help="whether to use the max distance of breakpoint to merge two reads region. [Default: %(default)s]")
     P_Merge = subparsers.add_parser('Merge',conflict_handler='resolve',
                     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-                    parents=[P_Common, P_fetch, P_search, P_annot,  P_merge],
+                    parents=[P_Common, P_fetch, P_search, P_annot, P_merge, P_cnv],
                     help='merge breakpoint region from bed file.')
 
     P_update = subparsers.add_parser('Update', conflict_handler='resolve', add_help=False)
@@ -156,7 +188,7 @@ def Args():
                     help="out prefix of regioin out put.")
     P_Update = subparsers.add_parser('Update',conflict_handler='resolve',
                     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-                    parents=[P_Common, P_fetch, P_search, P_merge, P_annot, P_update],
+                    parents=[P_Common, P_fetch, P_search, P_merge, P_annot, P_update, P_cnv],
                     help='merge all breakpoint region in all samples.')
 
     P_filter = subparsers.add_parser('Filter', conflict_handler='resolve', add_help=False)
@@ -184,7 +216,7 @@ def Args():
                     help="the max lenght on one link. [Default: %(default)s]")
     P_Filter = subparsers.add_parser('Filter',conflict_handler='resolve',
                     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-                    parents=[P_Common, P_merge, P_update, P_annot, P_filter],
+                    parents=[P_Common, P_merge, P_update, P_annot, P_filter, P_cnv],
                     help='filter links from bed file.')
 
     P_circos = subparsers.add_parser('Circos', conflict_handler='resolve', add_help=False)
@@ -195,7 +227,7 @@ def Args():
     P_circos.add_argument("-cs", "--circissw", type=str,
                     default='/share/home/share/software/circos-0.69-9/bin/circos',
                     help="the circos software. [Default: %(default)s].")
-    P_circos.add_argument("-kb", "--keepbio", nargs='+', 
+    P_circos.add_argument("-kb", "--keepbio", nargs='+',
                     default=['protein_coding'],
                     help="the kept gene biotype. [Default: %(default)s]")
     P_circos.add_argument("-pl", "--perl", type=str,
@@ -203,14 +235,14 @@ def Args():
                     help="the perl software. [Default: %(default)s].")
     P_circos.add_argument("-hd", "--cirhead", type=str, default='All.circle.plot',
                     help="the circos output prefix name. [Default: %(default)s].")
-    P_circos.add_argument("-gf", "--genefilt", type=str, 
+    P_circos.add_argument("-gf", "--genefilt", type=str,
                     #default='/share/home/share/Pipeline/14EcDNA/EcDNAFinder/Data/cancer.gene.cosmic.cgc.723.20210225.txt',
                     help="the gene keep in circos. [Default: %(default)s].")
     P_circos.add_argument("-cp", "--cirplot", action='store_true', default=True,
                     help="whether to plot the circos. [Default: %(default)s]")
     P_Circos = subparsers.add_parser('Circos',conflict_handler='resolve',
                     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-                    parents=[P_Common, P_merge, P_annot, P_update, P_filter, P_circos],
+                    parents=[P_Common, P_merge, P_annot, P_update, P_filter, P_circos, P_cnv],
                     help='Circos visual for the target links file.')
 
     P_check = subparsers.add_parser('Check', conflict_handler='resolve', add_help=False)
@@ -222,35 +254,35 @@ def Args():
                     help="the min breakpoint number in one reads. [Default: %(default)s]")
     P_check.add_argument("-ol", "--overlenmin", type=int, default=400,
                     help="the minimum overlap lenght of breakpiont region. [Default: %(default)s]")
-    P_check.add_argument("-cb", "--checkbed", type=str, 
+    P_check.add_argument("-cb", "--checkbed", type=str,
                     default='/share/home/zhou_wei/Workspace/11Project/02Plasmid/01analysescript/uniqueovr/BEDUniq.region.txt',
                     help="the bed file of plasmid unique region. [Default: %(default)s]")
     P_check.add_argument("-mc", "--maxchecksofttwoends", type=float, default=0.2,
                     help="the max distance of softclip of one end to mask in head-to-tail mapping region. [Default: %(default)s]")
     P_Check = subparsers.add_parser('Check',conflict_handler='resolve',
                     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-                    parents=[P_Common, P_fetch, P_search, P_merge, P_check],
+                    parents=[P_Common, P_fetch, P_search, P_merge, P_check, P_cnv],
                     help='check plasmid unique breakpoint region.')
 
     P_seq = subparsers.add_parser('Seq', conflict_handler='resolve', add_help=False)
     P_seq.add_argument("-ls", "--lengthbpseq", type=int, default=1000,
                     help="the reference genome sequence legnth of breakpiont region to extract. [Default: %(default)s]")
-    P_seq.add_argument("-gr", "--genome", type=str, 
+    P_seq.add_argument("-gr", "--genome", type=str,
                     default='/share/home/zhou_wei/Workspace/01Repository/GenomeDB/Reference/EcDNARef/HG38_ENSEMBL_Plasmid20.fa',
                     help="the bed file of plasmid unique region. [Default: %(default)s]")
     P_seq.add_argument("-lf", "--linkfile", type=str,
                     help="the links file, such as All.circle.region.UpMerge_sort.")
     P_Seq = subparsers.add_parser('Seq',conflict_handler='resolve',
                     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-                    parents=[P_Common, P_fetch, P_search, P_merge, P_update, P_check, P_seq],
+                    parents=[P_Common, P_fetch, P_search, P_merge, P_update, P_check, P_seq, P_cnv],
                     help='get sequence information.')
 
     P_Autopipe = subparsers.add_parser('Auto', conflict_handler='resolve', prefix_chars='-+',
                     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-                    parents=[P_Common, P_fetch, P_search, P_merge, P_update, P_annot, P_filter, P_circos, P_check],
+                    parents=[P_Common, P_fetch, P_search, P_merge, P_update, P_annot, P_filter, P_circos, P_check, P_cnv],
                     help='the auto-processing for all.')
-    P_Autopipe.add_argument("+P", "++pipeline", nargs='+', 
-                    default=['Fetch', 'Search', 'Merge', 'Annot', 'Update', 'Filter', 'Circos'],
+    P_Autopipe.add_argument("+P", "++pipeline", nargs='+',
+                    default=['CNV', 'Fetch', 'Search', 'Merge', 'Annot', 'Update', 'Filter', 'Circos'],
                     help="the auto-processing: [Default: %(default)s].")
     P_Autopipe.add_argument('+M','++MODEL' , nargs='+', type=str, default=['Standard'],
                     help='''Chose more the one models from Standard, Fselect,Fitting and Predict used for DIY pipline.''')

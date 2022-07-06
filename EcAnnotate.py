@@ -7,6 +7,9 @@ import numpy  as np
 from joblib import Parallel, delayed
 import copy
 import pybedtools as bt
+import warnings
+warnings.filterwarnings("ignore")
+
 
 from EcMagiccube import LinkAnnot, BTAnnot, Transreg
 
@@ -21,9 +24,10 @@ class Annotate():
         self.trfdistance = self.arg.trfdistance
         self.annotcol    = self.arg.annotcol
         self.annotbplen  = self.arg.annotbplen
+        self._getgenebed()
 
     def _getgenebed(self):
-        #gtfbed: '#chrom', 'start', 'end', 'gene_name', 'gene_biotype'   
+        #gtfbed: '#chrom', 'start', 'end', 'gene_name', 'gene_biotype'
         self.gtfbed  = self.arg.gtfbed
         self.biotype = self.arg.biotype
         self.genecolr= ['#chrom', 'start', 'end']  + [self.annotcol , 'gene_biotype']
@@ -34,6 +38,7 @@ class Annotate():
         Gene['#chrom'] = Gene['#chrom'].astype(str)
         Gene.sort_values(by=['#chrom', 'start', 'end'], ascending=[True, True,  True], inplace=True)
         Gene.columns = self.genecoln
+        self.gbed = bt.BedTool.from_dataframe(Gene)
         return Gene
 
     def _gettrfbed(self):
@@ -51,7 +56,7 @@ class Annotate():
         _genbed = self._getgenebed().values
         _anno[['gene_name', 'gene_biotype']] = \
                 _anno[['#chrom', 'start', 'end']]\
-                .apply(lambda x: LinkAnnot( Transreg(x.tolist(), _l=self.annotbplen), 
+                .apply(lambda x: LinkAnnot( Transreg(x.tolist(), _l=self.annotbplen),
                                             _genbed, minover=self.minoverlap), axis=1)\
                 .tolist()
         _anno[['gene_name', 'gene_biotype']] = _anno[['gene_name', 'gene_biotype']].replace({'':'.'})
@@ -72,7 +77,7 @@ class Annotate():
         _tcol   = _genbed.columns.tolist()
         gbed    = bt.BedTool.from_dataframe(_genbed)
 
-        _bcol= ['#chrom', 'start', 'end'] 
+        _bcol= ['#chrom', 'start', 'end']
         bbed = _inbed[_bcol].drop_duplicates(keep='first')
         bbed['#chrom'] = bbed['#chrom'].astype(str)
         bbed = bt.BedTool.from_dataframe(bbed)
@@ -97,25 +102,45 @@ class Annotate():
         bbed[['gene_name', 'gene_biotype']] = bbed[['gene_name', 'gene_biotype']].fillna('.')
         return bbed
 
+    def geneannote(self, chrom, start, end):
+        if start < end:
+            dbed = bt.BedTool(f'{chrom}\t{start}\t{end}', from_string=True)
+        else:
+            dbed = bt.BedTool(f'{chrom}\t{end}\t{start}', from_string=True)
+        COLs = ['#chrom', 'start', 'end', 'chr', 's', 'e', 'name', 'biotype']
+        bbed = dbed.intersect(self.gbed, s=False, S=False, wa=True, wb=True)\
+            .to_dataframe(disable_auto_names=True, header=None, names=COLs)
+        if not len(bbed.index):
+            return '', ''
+        return ','.join(bbed['name']), ','.join(bbed['biotype'])
+
     def bptrfannot(self, _inbed):
         _tcol, _trf = self._gettrfbed()
         _bcol = ['#chrom', 'start', 'end']
-        _COLs = _bcol + _tcol
         bbed = _inbed[_bcol].drop_duplicates(keep='first')
         bbed['#chrom'] = bbed['#chrom'].astype(str)
+        bbed['nstart'] = bbed['start']
+        bbed['nend'] = bbed['end']
+        #bbed['strand'] = '+'
+        for i, q in bbed.iterrows():
+            if q['start'] > q['end']:
+                bbed['nstart'][i], bbed['nend'][i] = q['end'], q['start']
+             #   bbed['strand'] = '-'
         # only annotate the bp loci retion
         #K = tbed.apply(lambda x: BTAnnot(x.tolist(), _trf.values), axis=1)
+        nbcol = ['#chrom', 'nstart', 'nend', 'start', 'end']
+        bbed = bbed[nbcol]
 
+        _COLs = nbcol + _tcol
         bbed = bt.BedTool.from_dataframe(bbed)
         bbed  = bbed.intersect(_trf, s=False, S=False, wa=True, wb=True)\
                     .to_dataframe(disable_auto_names=True, header=None, names=_COLs)
-        del _trf
 
         bbed = bbed.infer_objects()
         bbed['#chrom'] = bbed['#chrom'].astype(str)
-        bbed['len_m']  = bbed[['end', 'end_t']].min(1) - bbed[['start', 'start_t']].max(1)
+        bbed['len_m']  = bbed[['nend', 'end_t']].min(1) - bbed[['nstart', 'start_t']].max(1)
         bbed = bbed[(bbed.len_m >= self.minovertrf)]
-        bbed['TRF']    = 'Over'
+        bbed['TRF']  = 'Over'
 
         bbed['start_t']  -= self.trfdistance
         bbed['end_t']    += self.trfdistance
@@ -126,6 +151,7 @@ class Annotate():
                     .groupby(by=_bcol, sort=False)['TRF']\
                     .apply(lambda x: ';'.join(sorted(set(';'.join(x.unique()).split(';')))))\
                     .to_frame('TRF').reset_index()
+        bbed.to_csv('after.txt', sep='\t')
 
         bbed = _inbed.merge(bbed, on=_bcol, how='left')
         return bbed

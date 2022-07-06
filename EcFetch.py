@@ -32,9 +32,9 @@ class SoftFetch():
         if 'bamfile' in _info.keys():
             self.inbam = _info.bamfile
         else:
-            self.inbam = '%s/%s.sorted.bam'%(self.arg.Bam, _info.sampleid)
+            self.inbam = '%s/%s.rmdup.bam'%(self.arg.Bam, _info.sampleid)
             if not os.path.exists(self.inbam):
-                self.inbam = '%s/%s/%s.sorted.bam'%(self.arg.Bam, _info.sampleid, _info.sampleid)
+                self.inbam = '%s/%s/%s.rmdup.bam'%(self.arg.Bam, _info.sampleid, _info.sampleid)
         if not os.path.exists(self.inbam):
             self.log.CW('The bam file of Sample %s cannot be found. Please input right path'%_info.sampleid)
         else:
@@ -106,7 +106,7 @@ class SoftFetch():
         samfile = pysam.AlignmentFile(self.inbam, "rb")
         SID   = self.inid
         sampd = []
-        Head  = ['#chrom', 'start', 'end', 'SID', 'length', 'forword', 'query_name', 'query_length', 
+        Head  = ['#chrom', 'start', 'end', 'SID', 'length', 'forword', 'query_name', 'query_length',
                  'cigarreg', 'alignment_qlen', 'mapping_quality', 'flag']
 
         for read in samfile.fetch():
@@ -148,7 +148,7 @@ class SoftFetch():
         Regs  = []
         for  n,i in enumerate(cigref):
             if (i[0] !=4 ):
-                bed = [ _g.reference_name, start, start + int(i[1]-1), _g.SID, i[1], _g.is_reverse, _g.query_name, 
+                bed = [ _g.reference_name, start, start + int(i[1]-1), _g.SID, i[1], _g.is_reverse, _g.query_name,
                         _g.flag, _g.mapping_quality, _g.cigarstring, cigarpos, cigarpos[n], _g.query_length, cigref, _g.query_counts]
                 Regs.append(bed)
                 start += int(i[1]-1)
@@ -174,15 +174,15 @@ class SoftFetch():
                 SA = tags['SA']
                 query_name = read.query_name
                 flag = read.flag
-                mapping_quality  = read.mapping_quality 
+                mapping_quality  = read.mapping_quality
                 reference_start  = read.reference_start
                 read.cigartuples = self.cigarmerge(raw_cigartuples, match='Q')
                 cigartuples_ref  = self.cigarmerge(raw_cigartuples, match='R')
                 query_sequence   = read.query_sequence
                 #query_qualities  = pysam.array_to_qualitystring(read.query_qualities)
                 is_reverse = '-' if read.is_reverse else '+'
-                sampd.append([self.inid, query_name, flag, reference_name, reference_start, mapping_quality, 
-                              read.cigartuples, cigartuples_ref, is_reverse, len(query_sequence), SA, 
+                sampd.append([self.inid, query_name, flag, reference_name, reference_start, mapping_quality,
+                              read.cigartuples, cigartuples_ref, is_reverse, len(query_sequence), SA,
                               read.cigarstring ,raw_cigarstring])
                 if query_name not in samfa:
                     samfa[query_name] = query_sequence
@@ -191,8 +191,8 @@ class SoftFetch():
         Utilities(self.arg, self.log).savefa(samfa, '%s/%s.chimeric.fasta.gz'%(self.outdir, self.inid))
         del samfa
 
-        sampd = pd.DataFrame(sampd, columns=['SID', 'query_name', 'flag', 'reference_name', 'reference_start', 
-                                             'mapping_quality', 'cigartuples', 'cigartuples_ref', 'is_reverse', 
+        sampd = pd.DataFrame(sampd, columns=['SID', 'query_name', 'flag', 'reference_name', 'reference_start',
+                                             'mapping_quality', 'cigartuples', 'cigartuples_ref', 'is_reverse',
                                              'query_length', 'SA', 'cigarstring', 'raw_cigar'])
         sampd = sampd.merge(sampd.groupby('query_name')['query_name'].size().reset_index(name='query_counts'),
                             on='query_name', how='outer')
@@ -265,7 +265,7 @@ class SoftFetch():
         #CouBase = chrombin.merge(CouBase, on=['chrom', 'start', 'end'], how='outer')
         #samfile.close()
         #return CouBase
-        def filter_read(read):            
+        def filter_read(read):
             return not (read.is_secondary
                         or read.is_unmapped
                         or read.is_duplicate
@@ -275,10 +275,10 @@ class SoftFetch():
         sampd = []
         for read in samfile.fetch():
             if filter_read(read):
-                raw_cigartuples = read.cigartuples         
+                raw_cigartuples = read.cigartuples
                 is_reverse = '-' if read.is_reverse else '+'
-                Info = [read.reference_name, read.reference_start, read.reference_end, self.inid, 
-                        read.reference_end - read.reference_start + 1, is_reverse, read.query_name, 
+                Info = [read.reference_name, read.reference_start, read.reference_end, self.inid,
+                        read.reference_end - read.reference_start + 1, is_reverse, read.query_name,
                         read.query_length, read.query_alignment_length, read.mapping_quality,  read.flag ]
                 if is_reverse =='-':
                     read.cigartuples = raw_cigartuples[::-1]
@@ -291,11 +291,11 @@ class SoftFetch():
         samfile.close()
 
 
-        Head  = ['#chrom', 'start', 'end', 'SID', 'length', 'forword', 'query_name', 
-                 'query_length', 'query_alignment_length', 'mapping_quality', 'flag', 
+        Head  = ['#chrom', 'start', 'end', 'SID', 'length', 'forword', 'query_name',
+                 'query_length', 'query_alignment_length', 'mapping_quality', 'flag',
                  'cigarreg',  'cigarstring']
         sampd = pd.DataFrame(sampd, columns=Head)
-        
+
         sampd = sampd.merge(sampd.groupby('query_name')['query_name'].size().reset_index(name='query_counts'),
                             on='query_name', how='outer')
         sampd = sampd[(sampd.query_counts>1)]
